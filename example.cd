@@ -4,12 +4,13 @@ fn main() {
     if test > 0 {
         const other = if test == 5 then 3 else 4;
         const other_example = if test == 5 {
-            3
+            use 3;
         } else {
-            4
+            use 4;
         }
     }
 
+    // This is a comment
     const test = "Hello, World"
 
     return 45;

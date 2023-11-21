@@ -1,0 +1,5 @@
+fn main() {
+    let test = 5;
+
+    if test > 5 {}
+}
