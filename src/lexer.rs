@@ -4,7 +4,7 @@ use peekmore::{PeekMore, PeekMoreIterator};
 use unicode_xid::UnicodeXID;
 
 #[derive(Eq, PartialEq, Clone, Debug)]
-enum LexerToken {
+pub enum LexerToken {
     // Declarations
     FnDeclaration,
     Identifier(String),
@@ -32,7 +32,7 @@ enum LexerToken {
 
     // Literals
     StringLiteral(String),
-    Number(u128),
+    Number(String),
     Boolean(bool),
 }
 
@@ -92,9 +92,9 @@ impl<'a> Lexer<'a> {
                 '=' => out.push(LexerToken::Equals),
                 '>' => out.push(LexerToken::GreaterThan),
                 '<' => out.push(LexerToken::LessThan),
-                pot_number if pot_number.is_numeric() => out.push(LexerToken::Number(
-                    self.collect_to_number(pot_number).unwrap(),
-                )),
+                pot_number if pot_number.is_numeric() => {
+                    out.push(LexerToken::Number(self.collect_to_number(pot_number)))
+                }
                 ident if ident.is_xid_start() => {
                     out.push(LexerToken::from_string(&self.collect_to_string(ident)))
                 }
@@ -120,7 +120,7 @@ impl<'a> Lexer<'a> {
         out
     }
 
-    fn collect_to_number(&mut self, first_digit: char) -> Option<u128> {
+    fn collect_to_number(&mut self, first_digit: char) -> String {
         let mut out = String::from(first_digit);
         let mut idx = 0;
         while let Some((_, char)) = self.peek_nth(idx) {
@@ -132,7 +132,7 @@ impl<'a> Lexer<'a> {
             idx += 1;
         }
         self.consume_elements(out.len() - 1);
-        out.parse().ok()
+        out
     }
 }
 
@@ -154,12 +154,12 @@ fn lex_example() {
             LexerToken::LetDeclaration,
             LexerToken::Identifier("test".to_string()),
             LexerToken::Equals,
-            LexerToken::Number(5),
+            LexerToken::Number("5".to_string()),
             LexerToken::EndStatement,
             LexerToken::If,
             LexerToken::Identifier("test".to_string()),
             LexerToken::GreaterThan,
-            LexerToken::Number(5),
+            LexerToken::Number("5".to_string()),
             LexerToken::BeginBlock,
             LexerToken::EndBlock,
             LexerToken::EndBlock
