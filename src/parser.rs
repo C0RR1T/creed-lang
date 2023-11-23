@@ -17,6 +17,7 @@ enum ParserToken {
         assigment_type: AssigmentType,
         source: ExpressionKind,
     },
+    Block(Vec<ParserToken>),
 }
 #[derive(Debug, Clone, Eq, PartialEq)]
 enum ExpressionKind {
@@ -37,6 +38,9 @@ enum ExpressionKind {
     },
     StringLiteral(String),
     Number(String),
+    AnonFunction {
+        content: Vec<ParserToken>,
+    },
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -104,14 +108,29 @@ impl Parser {
     }
 
     fn parse_token(&mut self, first_token: LexerToken) -> ParserToken {
-        todo!()
+        match first_token {
+            LexerToken::FnDeclaration => self.parse_function(),
+            LexerToken::LetDeclaration | LexerToken::ConstDeclaration => {
+                self.parse_assignment().unwrap()
+            }
+            LexerToken::If => {}
+            LexerToken::ReturnFn => {}
+            _ => panic!("unexpected token"),
+        }
     }
 
+    fn parse_if(&mut self) -> Result<ParserToken, ()> {}
+
     fn parse_func_body(&mut self) -> Result<Vec<ParserToken>, ()> {
-        let func_body = self
-            .take_while(|token| *token != LexerToken::EndBlock)
-            .map(|token| self.parse_token(token))
-            .collect();
+        self.consume_elements(5);
+        let mut func_body = Vec::new();
+        while let Some(token) = self.next() {
+            if token == LexerToken::EndBlock {
+                break;
+            }
+
+            func_body.push(self.parse_token(token));
+        }
 
         // The iterator still contains items, this means `take_while` had to stop due to an EndBlock
         if self.lexer_tokens.peek_nth(0).is_some() {
@@ -124,47 +143,101 @@ impl Parser {
     fn parse_function(&mut self) -> ParserToken {
         match self.window(1, 4) {
             [Some(LexerToken::Identifier(fn_name)), Some(LexerToken::OpenParen), Some(LexerToken::CloseParen), Some(LexerToken::BeginBlock)] => {
-                return {
-                    ParserToken::Function {
-                        identifier: fn_name.clone(),
-                        content: self.parse_func_body().unwrap(),
-                    }
+                ParserToken::Function {
+                    identifier: fn_name.clone(),
+                    content: self.parse_func_body().unwrap(),
                 }
             }
             _ => panic!("fn does not match"),
+        }
+    }
+
+    fn parse_expression(&mut self, first_token: &LexerToken) -> ParserToken {
+        match first_token {
+            LexerToken::FnDeclaration => {}
+            LexerToken::Identifier(_) => {}
+            LexerToken::LetDeclaration => {}
+            LexerToken::ConstDeclaration => {}
+            LexerToken::BeginBlock => {}
+            LexerToken::EndBlock => {}
+            LexerToken::EndStatement => {}
+            LexerToken::OpenParen => {}
+            LexerToken::CloseParen => {}
+            LexerToken::If => {}
+            LexerToken::Then => {}
+            LexerToken::Else => {}
+            LexerToken::Equals => {}
+            LexerToken::GreaterThan => {}
+            LexerToken::LessThan => {}
+            LexerToken::ReturnFn => {}
+            LexerToken::Use => {}
+            LexerToken::StringLiteral(_) => {}
+            LexerToken::Number(_) => {}
+            LexerToken::Boolean(_) => {}
         }
 
         todo!()
     }
 
-    fn parse_expression() {}
-
     fn parse_assignment(&mut self) -> Result<ParserToken, ()> {
         match self.window(0, 5) {
-            [Some(LexerToken::LetDeclaration | LexerToken::ConstDeclaration), Some(LexerToken::Identifier(variable_name)), Some(LexerToken::Equals), Some(LexerToken::StringLiteral(value) | LexerToken::Number(value)), Some(LexerToken::EndStatement)] =>
+            [Some(assignment_type), Some(LexerToken::Identifier(variable_name)), Some(LexerToken::Equals), Some(value_assigment), Some(LexerToken::EndStatement)]
+                if (*assignment_type == LexerToken::LetDeclaration
+                    || *assignment_type == LexerToken::ConstDeclaration)
+                    && (matches!(*value_assigment, LexerToken::StringLiteral(_))
+                        || matches!(*value_assigment, LexerToken::Number(_))) =>
             {
-                let assigment_type = self.peek_nth(0).unwrap().clone();
-                let assigment_type = if assigment_type == LexerToken::LetDeclaration {
+                let assigment_type = if *assignment_type == LexerToken::LetDeclaration {
                     AssigmentType::Let
                 } else {
                     AssigmentType::Const
                 };
 
-                let value = if let LexerToken::StringLiteral(_) =
-                    LexerToken::StringLiteral("hello".to_string())
-                {
+                let value = if let LexerToken::StringLiteral(value) = value_assigment {
                     ExpressionKind::StringLiteral(value.clone())
-                } else {
+                } else if let LexerToken::Number(value) = value_assigment {
                     ExpressionKind::Number(value.clone())
+                } else {
+                    unreachable!()
                 };
 
-                return Ok(ParserToken::Assignment {
+                Ok(ParserToken::Assignment {
                     assigment_type,
                     identifier: variable_name.clone(),
                     source: value,
-                });
+                })
             }
             _ => Err(()),
         }
     }
+}
+
+fn parse_expression(
+    iter: &mut PeekMoreIterator<IntoIter<LexerToken>>,
+    first_token: &LexerToken,
+) -> Result<ParserToken, ()> {
+    match first_token {
+        LexerToken::FnDeclaration => {}
+        LexerToken::Identifier(_) => {}
+        LexerToken::LetDeclaration => {}
+        LexerToken::ConstDeclaration => {}
+        LexerToken::BeginBlock => {}
+        LexerToken::EndBlock => {}
+        LexerToken::EndStatement => {}
+        LexerToken::OpenParen => {}
+        LexerToken::CloseParen => {}
+        LexerToken::If => {}
+        LexerToken::Then => {}
+        LexerToken::Else => {}
+        LexerToken::Equals => {}
+        LexerToken::GreaterThan => {}
+        LexerToken::LessThan => {}
+        LexerToken::ReturnFn => {}
+        LexerToken::Use => {}
+        LexerToken::StringLiteral(_) => {}
+        LexerToken::Number(_) => {}
+        LexerToken::Boolean(_) => {}
+    }
+
+    todo!()
 }
